@@ -2,16 +2,20 @@ FROM mcr.microsoft.com/playwright:v1.42.1-jammy
 
 WORKDIR /app
 
-# Copie et installation des dépendances (optimisation du cache Docker)
+# Installation des dépendances système requises
+RUN apt-get update && apt-get install -y curl
+
+# Copie et installation des dépendances Node
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev  # Utilise `npm ci` pour des installations reproductibles
+RUN npm ci --omit=dev && \
+    npx playwright install --with-deps
 
-# Copie du code et installation des browsers
+# Copie du code
 COPY . .
-RUN npx playwright install --with-deps
 
-# Health check et exposition du port
-HEALTHCHECK --interval=30s --timeout=3s CMD curl -f http://localhost:3000/health || exit 1
+# Configuration santé et port
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s \
+    CMD curl -f http://localhost:3000/health || exit 1
 EXPOSE 3000
 
 # Commande de démarrage
